@@ -113,6 +113,28 @@ class PrimaryKey {
   const PrimaryKey();
 }
 
+/// Updated:
+/// Used to annotate a field as the foreign key of another table.
+///
+/// {@category Models}
+class ForeignKey {
+  final String targetTable;
+  final String targetTableColumn;
+  final bool isPrimaryKey;
+
+  const ForeignKey(this.targetTable, this.targetTableColumn, this.isPrimaryKey);
+}
+
+/// Updated:
+/// Used to annotate a field that is a foreignn key with a custom column name.
+///
+/// {@category Models}
+class ForeignKeyCustomColumnName {
+  final String columnName;
+
+  const ForeignKeyCustomColumnName(this.columnName);
+}
+
 /// Used to annotate a field as an auto increment value.
 /// Can only be applied to an integer field.
 ///
