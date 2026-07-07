@@ -2,10 +2,12 @@ import 'base_repository.dart';
 
 abstract class ModelRepositoryInsert<InsertRequest> {
   /// Inserts a single row.
-  Future<void> insertOne(InsertRequest request);
+  /// Updated: void to dynamic
+  Future<dynamic> insertOne(InsertRequest request);
 
   /// Inserts multiple rows.
-  Future<void> insertMany(List<InsertRequest> requests);
+  /// Updated: void to dynamic
+  Future<dynamic> insertMany(List<InsertRequest> requests);
 }
 
 abstract class KeyedModelRepositoryInsert<InsertRequest> {
@@ -18,12 +20,12 @@ abstract class KeyedModelRepositoryInsert<InsertRequest> {
 
 mixin RepositoryInsertMixin<InsertRequest> on BaseRepository
     implements ModelRepositoryInsert<InsertRequest> {
-  Future<void> insert(List<InsertRequest> requests);
+  Future<dynamic> insert(List<InsertRequest> requests);
 
   @override
-  Future<void> insertOne(InsertRequest request) => insert([request]);
+  Future<dynamic> insertOne(InsertRequest request) => insert([request]);
   @override
-  Future<void> insertMany(List<InsertRequest> requests) => insert(requests);
+  Future<dynamic> insertMany(List<InsertRequest> requests) => insert(requests);
 }
 
 mixin KeyedRepositoryInsertMixin<InsertRequest> on BaseRepository

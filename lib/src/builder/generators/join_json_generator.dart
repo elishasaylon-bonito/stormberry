@@ -4,9 +4,10 @@ import '../elements/join_table_element.dart';
 class JoinJsonGenerator {
   Map<String, dynamic> generateJsonSchema(JoinTableElement join) {
     return {
+      // Updated: Sets correct type, honors type converter if not empty
       'columns': {
-        join.firstName: {'type': getSqlType(join.first.primaryKeyParameter!.type)},
-        join.secondName: {'type': getSqlType(join.second.primaryKeyParameter!.type)},
+        join.firstName: {'type': join.first.primaryKeyColumn!.sqlType},
+        join.secondName: {'type': join.second.primaryKeyColumn!.sqlType},
       },
       'constraints': [
         {'type': 'primary_key', 'column': '${join.firstName}", "${join.secondName}'},

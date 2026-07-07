@@ -30,6 +30,21 @@ class RepositoryGenerator {
     var keyType = table.primaryKeyColumn?.dartType;
     var hasKeyAutoInc = table.primaryKeyColumn?.isAutoIncrement ?? false;
 
+    // Updated: Overrides insert functions from ModelRepositoryInsert to return correct dart type
+    String? overrideInserts;
+    if (keyType == 'String' || table.primaryKeyColumn?.rawSqlType == 'uuid') {
+      overrideInserts = '''
+        @override
+        Future<$keyType?> insertOne(${table.element.name}InsertRequest request) async {
+          final result = await insert([request]);
+          return result.firstOrNull;
+        }
+
+        @override
+        Future<List<$keyType>> insertMany(List<${table.element.name}InsertRequest> requests) => insert(requests);
+      ''';
+    }
+
     return '''
       abstract class $repoName implements ModelRepository, 
         ${hasKeyAutoInc ? 'Keyed' : ''}ModelRepositoryInsert<${table.element.name}InsertRequest>, 
@@ -50,6 +65,8 @@ class RepositoryGenerator {
         ${ViewGenerator().generateRepositoryMethods(table)}
         
         ${InsertGenerator().generateInsertMethod(table)}
+
+        ${overrideInserts ?? ''}
         
         ${UpdateGenerator().generateUpdateMethod(table)}
 

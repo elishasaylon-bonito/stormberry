@@ -20,6 +20,10 @@ final useConverterChecker = TypeChecker.typeNamed(UseConverter, inPackage: 'stor
 final bindToChecker = TypeChecker.typeNamed(BindTo, inPackage: 'stormberry');
 final defaultChecker = TypeChecker.typeNamed(Default, inPackage: 'stormberry');
 
+// Updated: Added type checkers for ForeignKey and ForeignKeyCustomColumnName annotation
+const foreignKeyChecker = TypeChecker.typeNamed(ForeignKey, inPackage: 'stormberry');
+const foreignKeyCustomColumnNameChecker = TypeChecker.typeNamed(ForeignKeyCustomColumnName, inPackage: 'stormberry');
+
 /// The global builder options from the build.yaml file
 class GlobalOptions {
   CaseStyle? tableCaseStyle;

@@ -1,8 +1,10 @@
 import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/dart/element/nullability_suffix.dart';
+import 'package:source_gen/source_gen.dart';
 
 import '../../../core/case_style.dart';
 import '../../schema.dart';
+import '../../utils.dart';
 import '../table_element.dart';
 import 'column_element.dart';
 
@@ -26,8 +28,25 @@ class ForeignColumnElement extends ColumnElement
   @override
   String get sqlType => rawSqlType;
 
+  // Updated: Make converters work with foreign keys
   @override
-  String get rawSqlType => getSqlType(linkedTable.primaryKeyParameter!.type)!;
+  String get rawSqlType {
+    var type = isList ? '_' : '';
+
+    if (converter != null) {
+      type += ConstantReader(converter).read('type').stringValue;
+    } else {
+      var t = getSqlType(linkedTable.primaryKeyParameter!.type);
+      if (t != null) {
+        type += t;
+      } else {
+        throw 'The following field has an unsupported type:\n'
+            '  - Field "${parameter?.displayString()}" in class "${parentTable.element.displayString()}"\n'
+            'Either change the type to a supported column type, make the class a [Model] or use a custom [TypeConverter] with [@UseConverter].';
+      }
+    }
+    return type;
+  }
 
   @override
   String get paramName => CaseStyle.camelCase.transform(columnName);
@@ -36,7 +55,7 @@ class ForeignColumnElement extends ColumnElement
   bool get isList => false;
 
   @override
-  String get columnName => linkedTable.getForeignKeyName(base: parameter?.name)!;
+  String get columnName => linkedTable.getForeignKeyName(base: customColumnName ?? parameter?.name)!;
 
   bool get isUnique => !referencedColumn.isList;
 
@@ -53,4 +72,15 @@ class ForeignColumnElement extends ColumnElement
 
   @override
   String? get defaultValue => null;
+
+  // Updated: Add suport for custom foreign key column name
+  String? get customColumnName {
+    if (parameter == null) return null;
+
+    final checker = foreignKeyCustomColumnNameChecker
+      .annotationsOf(parameter!)
+      .followedBy(foreignKeyCustomColumnNameChecker.annotationsOf(parameter!.getter!));
+
+    return checker.firstOrNull?.getField('columnName')?.toStringValue();
+  }
 }

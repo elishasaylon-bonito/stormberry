@@ -83,19 +83,22 @@ class InsertGenerator {
           await _update${CaseStyle.pascalCase.transform(column.parameter.name ?? '')}([
             for (final r in requests) 
               if (r.${column.paramName} case final ${column.paramName}?) 
-                (${table.primaryKeyColumn!.isAutoIncrement ? 'result[requests.indexOf(r)]' : 'r.${table.primaryKeyColumn!.paramName}'}, UpdateValues.set(${column.paramName})),
+                (${table.primaryKeyColumn!.isAutoIncrement ? 'result[requests.indexOf(r)]' : 'r.${table.primaryKeyColumn!.paramName}!'}, UpdateValues.set(${column.paramName})),
             ],
           );
         ''');
       }
     }
 
-    String? autoIncrementStatement, keyReturnStatement;
+    String? autoIncrementStatement, returnType, keyReturnStatement;
 
-    if (table.primaryKeyColumn?.isAutoIncrement ?? false) {
+    // Updated: isAutoIncrement dictates whether InsertRequest return results
+    // Return results for primary columns of uuid type
+    if ((table.primaryKeyColumn?.isAutoIncrement ?? false) || (table.primaryKeyColumn!.rawSqlType == 'uuid')) {
       var name = table.primaryKeyColumn!.columnName;
+      returnType = table.primaryKeyColumn!.dartType;
       autoIncrementStatement = '''
-        var result = rows.map<int>((r) => TextEncoder.i.decode(r.toColumnMap()['$name'])).toList();
+        var result = rows.map<$returnType>((r) => TextEncoder.i.decode(r.toColumnMap()['$name'])).toList();
       ''';
 
       keyReturnStatement = 'return result;';
@@ -120,7 +123,7 @@ class InsertGenerator {
 
     return '''
       @override
-      Future<${keyReturnStatement != null ? 'List<int>' : 'void'}> insert(List<${table.element.name}InsertRequest> requests) async {
+      Future<${keyReturnStatement != null ? 'List<$returnType>' : 'void'}> insert(List<${table.element.name}InsertRequest> requests) async {
         if (requests.isEmpty) return${keyReturnStatement != null ? ' []' : ''};
         var values = QueryValues();
         ${autoIncrementStatement != null ? 'var rows = ' : ''}await db.execute(

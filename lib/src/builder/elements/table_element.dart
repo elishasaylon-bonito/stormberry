@@ -61,6 +61,44 @@ class TableElement {
     if (!annotation.read('meta').isNull) {
       meta = annotation.read('meta');
     }
+
+    // TODO:
+    // 1. Create ForeignKeyIndexElement class for this
+    // 2. In prepareColumns(), check if FieldElement is a foreign key, then add it
+    // as CustomForeignColumnElement
+    // 3. Add in packages/stormberry/lib/src/builder/generators/table_json_generator.dart constraints
+    // 4. Generate the View class in Repository. Ex: item.product will return a Product model
+    // final customForeignKeyElements =
+    //     element.fields.where((p) {
+    //       return foreignKeyChecker.hasAnnotationOf(p) ||
+    //           (p.getter != null && foreignKeyChecker.hasAnnotationOf(p.getter!));
+    //     }).toList();
+
+    // print(tableName);
+    // print(customForeignKeyElements.length);
+
+    // late Map<String, Map<String, dynamic>> foreignKeys = {};
+    // if (customForeignKeyElements.isNotEmpty) {
+    //   for (final parameter in customForeignKeyElements) {
+    //     final checker = foreignKeyChecker
+    //       .annotationsOf(parameter)
+    //       .followedBy(foreignKeyChecker.annotationsOf(parameter.getter!));
+
+    //     final targetTable = checker.firstOrNull?.getField('targetTable');
+    //     final targetTableColumn = checker.firstOrNull?.getField('targetTableColumn');
+    //     final isPrimaryKey = checker.firstOrNull?.getField('isPrimaryKey');
+
+    //     foreignKeys.putIfAbsent(parameter.displayName, () => {
+    //       'foreignKeyColumn': parameter.displayName, // Convert to snake case
+    //       'targetTable': targetTable?.toStringValue(),
+    //       'targetTableColumn': targetTableColumn?.toStringValue(),
+    //       'isPrimaryKey': isPrimaryKey?.toBoolValue(),
+    //     });
+    //   }
+
+    //   print(foreignKeys.keys.first);
+    //   print(foreignKeys[foreignKeys.keys.first]);
+    // }
   }
 
   String _getTableName({bool singular = false}) {
@@ -162,10 +200,24 @@ class TableElement {
 
           var selfColumn = JoinColumnElement(param, otherBuilder, joinBuilder, this, state);
 
+          // Updated: Set the primaryKeyColumn's converter as the foreign key's converter
+          selfColumn.converter = primaryKeyColumn?.converter;
+
           JoinColumnElement otherColumn;
           if (param != otherParam) {
             otherColumn = JoinColumnElement(otherParam!, this, joinBuilder, otherBuilder, state);
+            
+            // Updated: Set the otherBuilder.primaryKeyColumn's converter as the converter
+            otherColumn.converter = otherBuilder.primaryKeyColumn?.converter;
+
+            // As fallback, use this table's primaryKeyColumn if otherBuilder is empty
+            // Foreign keys need to be of same type to work
+            if (otherBuilder.primaryKeyColumn == null) {
+              otherColumn.converter = primaryKeyColumn?.converter;
+            }
+
             otherColumn.referencedColumn = selfColumn;
+
             otherBuilder.columns.add(otherColumn);
           } else {
             otherColumn = selfColumn;
@@ -178,6 +230,13 @@ class TableElement {
 
           if (otherHasKey && !selfIsList) {
             selfColumn = ForeignColumnElement(param, otherBuilder, this, state);
+
+            // Updated: Set the primaryKeyColumn's converter as the foreign key's converter
+            selfColumn.converter = primaryKeyColumn?.converter;
+            otherBuilder.prepareColumns();
+            if(otherBuilder.primaryKeyColumn?.isAutoIncrement ?? false) {
+              selfColumn.converter = null;
+            }
           } else {
             selfColumn = ReferenceColumnElement(param, otherBuilder, this, state);
           }
@@ -196,6 +255,13 @@ class TableElement {
             } else {
               otherColumn = ReferenceColumnElement(otherParam, this, otherBuilder, state);
             }
+
+            // Updated: Set the primaryKeyColumn's converter as the foreign key's converter
+            otherColumn.converter = primaryKeyColumn?.converter;
+            if(primaryKeyColumn?.isAutoIncrement ?? false) {
+              selfColumn.converter = null;
+            }
+
             otherBuilder.columns.add(otherColumn);
             otherColumn.referencedColumn = selfColumn;
           }
