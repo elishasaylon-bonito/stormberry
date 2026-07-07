@@ -106,14 +106,22 @@ Future<DatabaseSchema> inspectDatabaseSchema(Session db) async {
     var indexMap = row.toColumnMap();
     var indexName = (indexMap['indexname'] as String).substring(2);
     var tableName = indexMap['tablename'];
+
+    // Fixed bug indexdef doesn't match if there are multiple columns
     var defRegex = RegExp(
-      r'^CREATE( UNIQUE)? INDEX \w+ ON public.\w+ USING (\w+) \((\w+)\)(?: WHERE (.+))?$',
+      r'^CREATE( UNIQUE)? INDEX \w+ ON public.\w+ USING (\w+) \(([^)]+)\)(?: WHERE (.+))?$',
     );
+
     var defMatch = defRegex.firstMatch(indexMap['indexdef'] as String);
     if (defMatch == null || defMatch.groupCount != 4) continue;
     var unique = defMatch.group(1) != null;
     var algo = defMatch.group(2)!.toUpperCase();
-    var columns = defMatch.group(3)!.split(','); // TODO trim quotes (")
+    
+    // Fixed bug 2nd column onwards has leading space, hence not existing index
+    // not matching with indexes defined in database.schema.dart
+    // lib/src/cli/migration/differentiator.dart line 59
+    var columns = defMatch.group(3)!.replaceAll(RegExp(r'\s+'), '').split(','); // TODO trim quotes (")
+    
     var condition = defMatch.group(4);
     if (condition != null && RegExp(r'^\(.*\)$').hasMatch(condition)) {
       condition = condition.substring(1, condition.length - 1);
